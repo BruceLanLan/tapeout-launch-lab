@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TapeHub 机制研究 · TapeOut Research</title>
+  <meta name="description" content="对照 Pump.fun、Four.meme、Flap、Pons、LONG、Virtuals 与 TapeHub 的发射机制。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg:#0b0c0b; --surface:#141614; --fg:#eceee9; --muted:#8b9188; --subtle:#6a7068; --border:rgba(236,238,233,.12); --accent:#c5d4c8; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: "IBM Plex Sans", system-ui, sans-serif; }
+    .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+    .kicker { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+    h1, h2, h3 { font-family: Newsreader, Georgia, serif; font-weight: 500; letter-spacing: -.02em; }
+    h1 { font-size: clamp(28px, 4vw, 40px); margin: 10px 0 12px; }
+    h2 { font-size: 22px; margin: 36px 0 12px; }
+    h3 { font-size: 18px; margin: 22px 0 8px; }
+    p, li { line-height: 1.7; color: #d5d8d2; font-size: 15px; }
+    a { color: var(--accent); }
+    .lede { color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 16px 0 24px; }
+    th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    code { font-family: "IBM Plex Mono", monospace; font-size: 13px; }
+    nav { display: flex; gap: 16px; margin-bottom: 28px; font-size: 13px; }
+    .note { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; color: var(--muted); font-size: 14px; }
+    footer { margin-top: 40px; color: var(--subtle); font-size: 12px; }
+    ul { padding-left: 1.2em; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a href="./">走势模拟</a>
+      <a href="./#mech">机制对照</a>
+      <a href="https://github.com/BruceLanLan/tapeout-launch-lab">GitHub</a>
+    </nav>
+    <div class="kicker">TapeOut Research · 2026-09</div>
+    <h1>Launchpad 机制研究</h1>
+    <p class="lede">普通 Launchpad 发的是 Token。TapeOut 想发出来的，是一套还能继续 Build 的生产系统。TapeHub 是这套系统上被简化过的发射口。</p>
+    <p class="note">机制对照，不是收益预测，也不是官方文档。完整 Markdown 在仓库 <a href="https://github.com/BruceLanLan/tapeout-launch-lab/blob/main/RESEARCH.md">RESEARCH.md</a>。</p>
+
+    <h2>1. 赌场盘在发什么</h2>
+    <p>Pump.fun、Four.meme、Flap、Pons 的生命周期几乎同一条：创建 Token → Bonding Curve 买入 → 达标毕业 → AMM 流动性。这条路解决的是：怎么把一个 Token 在几十分钟里定价完。Four.meme 已经把 BNB Chain 上的发行做成了规模。问题不在「发得不够快」，在供给函数。</p>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>平台</th><th>链</th><th>T0 流通</th><th>团队</th><th>LP</th></tr></thead>
+      <tbody>
+        <tr><td>Pump.fun</td><td>Solana</td><td>~100%</td><td>dev 可买可砸</td><td>毕业烧毁</td></tr>
+        <tr><td>Four.meme</td><td>BNB Chain</td><td>~100%</td><td>创建时可同笔买入</td><td>约 18 BNB + 20% 供给</td></tr>
+        <tr><td>Flap</td><td>BSC 等</td><td>~100%</td><td>可配税</td><td>填满后迁池</td></tr>
+        <tr><td>Pons</td><td>Robinhood</td><td>~100%</td><td>无预留，吃交易费</td><td>毕业永锁</td></tr>
+        <tr><td>LONG</td><td>Robinhood</td><td>~100%</td><td>ticker 预订</td><td>股票代币做 quote</td></tr>
+        <tr><td>Virtuals</td><td>Base</td><td>高</td><td>Unicorn 可留团队</td><td>锁 10 年</td></tr>
+        <tr><td><b>TapeHub</b></td><td>BNB Chain</td><td><b>约 5%</b></td><td><b>禁止预留</b></td><td><b>99% 募资 + 5% 代币，永锁</b></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>共同结构：价格发现和筹码释放叠在同一分钟。LP 锁不锁、税高不高，改的是抽池和狙击，不改「第一天就能砸完」。</p>
+
+    <h2>2. TapeHub 现在的规则</h2>
+    <ol>
+      <li>发起人不能预留。</li>
+      <li>用户买的是晶体管，不是立刻能砸的全部筹码。</li>
+      <li>毕业时大约 5% 代币 + 募资约 99% 进永久锁仓 LP。</li>
+      <li>95% 必须靠矿机挖出来。每 5 个晶体管合成一台矿机。9 段减半，跨度 1908 天。</li>
+      <li>NAND/LATCH 消耗 ≠ BEM 消耗。不要收成一句「通缩」。</li>
+    </ol>
+    <p>买的是产币权。矿工每天兑现，是可计算的卖压。盘口薄的时候仍会把价格压下去——「现状慢熊」是默认路径。深度上来以后，同一套排放从打穿盘口，变成可吸收的通胀。</p>
+
+    <h2>3. 两扇门</h2>
+    <p><b>TapeHub · Launch：</b> Mint 晶体管 → 毕业 → 5 个合成矿机 → 按减半表挖代币。不画电路，不对 PoD。</p>
+    <p><b>Protocol · Build：</b> NAND / LATCH 是生产资料。自己设计、流片、迎合 PoD，元件被真实消耗，生成 Circuit。</p>
+    <p>完整链：Launch → Mint Components → Build → Tape Out → Circuit → PoD / Application / DeWEB。Launch 只是第一天。</p>
+
+    <h2>4. Bancor / DeFi Summer</h2>
+    <p>Bancor 把铸造、销毁和储备比率写成协议。DeFi Summer 把奖励摊到块。TapeHub 站在这条线上：赌场盘是注意力拍卖；TapeHub 把时间写进供给。机制保护的是下限，不是上限。</p>
+
+    <h2>5. 和 Four.meme 的分工</h2>
+    <p>发行、交易、深度，Four.meme 已经验证过了。TapeOut 出原生玩法，Four.meme / OpenFour 出基础设施。模拟器里的「TapeHub + Four.meme」只改一件事：供给函数不变，交易层变厚。合作是在谈的方向，不是已经签完的合同。Proof of Build 是畅想。</p>
+
+    <h2>6. DeWEB</h2>
+    <p>开发者一次上传、永久免费存。访问的人不需要钱包、不需要 gas，和 Web2 一样。多出来的是 Verification。</p>
+
+    <p><a href="./">打开走势模拟 →</a></p>
+    <footer>TapeOut Research。非正式官方产品。</footer>
+  </div>
+</body>
+</html>

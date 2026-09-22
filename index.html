@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Launch Lab · TapeOut Research</title>
+  <meta name="description" content="对照 Pump.fun、Four.meme、Flap、Pons、LONG、Virtuals 与 TapeHub 的发射机制与代币走势模拟。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0c0b;
+      --surface: #141614;
+      --fg: #eceee9;
+      --muted: #8b9188;
+      --subtle: #6a7068;
+      --border: rgba(236,238,233,.12);
+      --ok: #8faf8a;
+      --danger: #c17b6a;
+      --accent: #c5d4c8;
+      --pump: #ff5a3c;
+      --four: #47b4ff;
+      --flap: #e08a3c;
+      --pons: #e06a9f;
+      --long: #3d7cdb;
+      --virtuals: #c9a227;
+      --tapehub: #3dff8f;
+      --tapehubFour: #f4f1e6;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: "IBM Plex Sans", system-ui, sans-serif; }
+    button { font: inherit; cursor: pointer; }
+    h1, h2 { font-family: Newsreader, Georgia, serif; font-weight: 500; letter-spacing: -.02em; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 80px; }
+    header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 20px; align-items: end; border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 24px; }
+    .kicker { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+    h1 { font-size: clamp(28px, 4vw, 40px); margin: 8px 0 10px; }
+    .lede { max-width: 42em; color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0; }
+    .tabs { display: flex; background: var(--surface); border-radius: 10px; padding: 4px; border: 1px solid var(--border); }
+    .tabs button { border: 0; background: transparent; color: var(--muted); padding: 8px 14px; border-radius: 8px; }
+    .tabs a.tab-link { color: var(--muted); padding: 8px 14px; border-radius: 8px; text-decoration: none; display: inline-block; }
+    .layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; }
+    canvas { width: 100%; height: 320px; display: block; }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; font-size: 12px; }
+    .legend span { display: flex; align-items: center; gap: 8px; color: var(--fg); }
+    .sw { width: 22px; height: 3px; border-radius: 2px; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .chip { border: 1px solid var(--border); background: transparent; color: var(--muted); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+    .chip.on { background: var(--accent); color: #0b0c0b; border-color: transparent; }
+    label.block { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; }
+    input[type=range] { width: 100%; accent-color: var(--accent); }
+    .val { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--fg); }
+    .toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 13px; color: var(--fg); }
+    .pads button { width: 100%; text-align: left; border: 0; background: transparent; color: var(--fg); display: flex; gap: 10px; align-items: center; padding: 8px 4px; border-radius: 8px; }
+    .pads button.off { color: var(--subtle); }
+    .dot { width: 10px; height: 10px; border-radius: 99px; flex: 0 0 auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 8px 10px; }
+    td { padding: 10px; border-top: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+    .mono { font-family: "IBM Plex Mono", monospace; }
+    .ok { color: var(--ok); }
+    .bad { color: var(--danger); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .muted { color: var(--muted); }
+    .subtle { color: var(--subtle); font-size: 12px; }
+    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    @media (max-width: 700px) { .flow { grid-template-columns: 1fr 1fr; } }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+    .step b { display: block; margin-bottom: 6px; }
+    .hidden { display: none; }
+    footer { margin-top: 28px; color: var(--subtle); font-size: 12px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="kicker">TapeOut Research · Launch Lab</div>
+        <h1>同一笔注意力，七种发射标准</h1>
+        <p class="lede">赌场盘在分钟级放完全部筹码。TapeHub 把 95% 锁进减半排放。拖参数看价格和流通盘怎么分叉——机制保护的是下限，不是上限。模拟，不是预测。</p>
+      </div>
+      <div class="tabs" id="tabs">
+        <button class="on" data-tab="sim">走势模拟</button>
+        <button data-tab="mech">机制对照</button>
+        <a class="tab-link" href="research.html">研究正文</a>
+      </div>
+    </header>
+
+    <section id="sim">
+      <div class="layout">
+        <div>
+          <div class="card">
+            <h2 style="margin:0 0 8px;font-size:20px">价格 · 首次成交 = 1.0x</h2>
+            <canvas id="price" width="900" height="320"></canvas>
+            <div class="legend" id="legend"></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <h2 style="margin:0 0 8px;font-size:20px">流通供给</h2>
+            <canvas id="supply" width="900" height="240"></canvas>
+          </div>
+          <div class="card" style="margin-top:16px; overflow-x:auto">
+            <h2 style="margin:0 0 8px;font-size:20px">结局对照</h2>
+            <table id="table"></table>
+          </div>
+        </div>
+        <aside class="card" id="controls"></aside>
+      </div>
+    </section>
+
+    <section id="mech" class="hidden">
+      <h2>两扇门，不要混着讲</h2>
+      <div class="flow" style="margin:16px 0 28px">
+        <div class="step"><b>TapeHub · Launch</b><span class="muted">Mint 晶体管 → 毕业 → 5 个合成矿机 → 减半挖代币。不画电路，不对 PoD 题目。</span></div>
+        <div class="step"><b>Protocol · Build</b><span class="muted">NAND / LATCH 是生产资料。自己设计、流片、迎合 PoD，才进这条门。</span></div>
+        <div class="step"><b>无预留 · 5% / 95%</b><span class="muted">毕业约 5% 进永久锁仓 LP，95% 要挖 1908 天。发起人不能预留。</span></div>
+        <div class="step"><b>DeWEB</b><span class="muted">开发者一次上传、永久免费存。用户访问不需要钱包、不需要 gas，和 Web2 一样。</span></div>
+      </div>
+      <div class="grid" id="padGrid"></div>
+    </section>
+
+    <footer>
+      由 <a href="https://x.com/BruceBlue">@BruceBlue</a> · TapeOut Research。非正式官方产品。数字是机制对照，不是收益承诺。 <a href="https://github.com/BruceLanLan/tapeout-launch-lab">源码</a>
+    </footer>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
