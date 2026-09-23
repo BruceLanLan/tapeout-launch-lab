@@ -75,8 +75,12 @@ function sampleTimes(horizonHours) {
   for (let h = 50; h <= Math.min(horizonHours, 336); h += 2) push(h);
   for (let h = 342; h <= Math.min(horizonHours, 2880); h += 6) push(h);
   for (let h = 2904; h <= horizonHours; h += 24) push(h);
+  for (let h = 2; h <= horizonHours; h += 48) {
+    push(h);
+    push(h + 6);
+  }
   if (out[out.length - 1] !== horizonHours) out.push(horizonHours);
-  return out;
+  return [...new Set(out)].sort((a, b) => a - b);
 }
 function casinoPrice(t, demand, spec) {
   const peakX = spec.peakX(demand), dumpTo = spec.dumpTo(demand), floor = spec.floor(demand);
@@ -106,6 +110,13 @@ function casinoPrice(t, demand, spec) {
   }
   return Math.max(px, FLOOR);
 }
+function burnShock(t, burn, thin) {
+  if (burn < 0.02 || t < 1.5) return 1;
+  const phase = (t - 2) % 48;
+  if (phase < 0 || phase > 22) return 1;
+  const env = Math.exp(-phase / 5.5);
+  return 1 + thin * (2.2 + burn * 7) * env;
+}
 function casinoCirc(t, pad) {
   if (pad === "virtuals") return 12 + clamp(t / 18, 0, 1) * 70;
   return 20 + clamp(t / 0.35, 0, 1) * 78;
@@ -116,7 +127,7 @@ function simulateTape(times, params, depth, demandBoost) {
   const quote0 = Math.max(params.raiseBnb, 1) * 0.99;
   const amm = { token: LP_TOKENS * depth, quote: quote0 * depth };
   const p0 = amm.quote / amm.token;
-  let lastDay = 0, minedTotal = 0, burned = 0;
+  let lastDay = 0, minedTotal = 0, burned = 0, nextShockDay = 2 / 24;
   const price = [], circ = [];
   const persist = 8 + 48 * params.demand * demandBoost;
   for (const h of times) {
@@ -124,28 +135,27 @@ function simulateTape(times, params, depth, demandBoost) {
     if (day > lastDay) {
       const minedNow = cumulativeMined(day) - minedTotal;
       minedTotal += minedNow;
-      if (minedNow * dump > 0) {
+      const shock = burn > 0.02 && day >= nextShockDay;
+      if (!shock && minedNow * dump > 0) {
         const k = amm.token * amm.quote;
         amm.token += minedNow * dump;
         amm.quote = k / amm.token;
       }
       const attention = 0.28 + 0.72 * params.demand * Math.exp(-h / (24 * persist));
       const buy = quote0 * 0.012 * params.demand * demandBoost * attention * (day - lastDay);
-      if (buy > 0) {
+      if (!shock && buy > 0) {
         const k = amm.token * amm.quote;
         amm.quote += buy;
         amm.token = k / amm.quote;
       }
-      const wantBurn = minedNow * burn;
-      const daySpan = day - lastDay;
-      if (wantBurn > 0 && burn > 0 && amm.token > 1) {
-        const burnt = Math.min(wantBurn, amm.token * burn * 0.005 * daySpan);
-        if (burnt > 0) {
-          const k = amm.token * amm.quote;
-          amm.token -= burnt;
-          amm.quote = k / amm.token;
-          burned += burnt;
-        }
+      if (shock && amm.token > 1) {
+        const frac = Math.min(0.68, (0.35 + burn * 0.55) / Math.sqrt(depth));
+        const burnt = amm.token * frac;
+        const k = amm.token * amm.quote;
+        amm.token -= burnt;
+        amm.quote = k / amm.token;
+        burned += burnt;
+        nextShockDay += 2;
       }
       lastDay = day;
     }
@@ -162,12 +172,12 @@ function runSim(params) {
     tHours,
     tPlot: Math.max(tHours, 0.05),
     prices: {
-      pump: casinoPrice(tHours, params.demand, CASINO.pump),
-      four: casinoPrice(tHours, params.demand, CASINO.four),
-      flap: casinoPrice(tHours, params.demand, CASINO.flap),
-      pons: casinoPrice(tHours, params.demand, CASINO.pons),
-      long: casinoPrice(tHours, params.demand, CASINO.long),
-      virtuals: casinoPrice(tHours, params.demand, CASINO.virtuals),
+      pump: casinoPrice(tHours, params.demand, CASINO.pump) * burnShock(tHours, params.fuelBurn, 1),
+      four: casinoPrice(tHours, params.demand, CASINO.four) * burnShock(tHours, params.fuelBurn, 1),
+      flap: casinoPrice(tHours, params.demand, CASINO.flap) * burnShock(tHours, params.fuelBurn, 0.4),
+      pons: casinoPrice(tHours, params.demand, CASINO.pons) * burnShock(tHours, params.fuelBurn, 1),
+      long: casinoPrice(tHours, params.demand, CASINO.long) * burnShock(tHours, params.fuelBurn, 0.35),
+      virtuals: casinoPrice(tHours, params.demand, CASINO.virtuals) * burnShock(tHours, params.fuelBurn, 0.22),
       tapehub: th.price[i],
       tapehubFour: th4.price[i],
     },
@@ -228,7 +238,7 @@ function drawChart(canvas, series, mode) {
   const iw = w - L - R, ih = h - T - B;
   const tMin = 0.05, tMax = state.params.horizonHours;
   const yMin = mode === "price" ? 0.03 : 0;
-  const yMax = mode === "price" ? 40 : 100;
+  const yMax = mode === "price" ? 80 : 100;
   const xOf = (t) => {
     const v = Math.max(t, tMin);
     if (state.timeLog) {
@@ -246,7 +256,7 @@ function drawChart(canvas, series, mode) {
   };
   ctx.strokeStyle = "rgba(236,238,233,0.06)";
   ctx.lineWidth = 1;
-  const yTicks = mode === "price" && state.logScale ? [0.03, 0.1, 0.3, 1, 3, 10, 30] : (mode === "price" ? [0, 5, 10, 20, 30] : [0, 25, 50, 75, 100]);
+  const yTicks = mode === "price" && state.logScale ? [0.03, 0.1, 0.3, 1, 3, 10, 30, 80] : (mode === "price" ? [0, 10, 20, 40, 80] : [0, 25, 50, 75, 100]);
   ctx.font = "11px IBM Plex Sans";
   ctx.fillStyle = "#8b9188";
   for (const y of yTicks) {
@@ -316,7 +326,7 @@ function renderControls() {
     <input type="range" min="0" max="1" step="0.01" value="${p.demand}" data-p="demand" />
     <label class="block">矿工兑现 <span class="val">${p.minerDump.toFixed(2)}</span></label>
     <input type="range" min="0" max="0.95" step="0.01" value="${p.minerDump}" data-p="minerDump" />
-    <label class="block">燃料销毁 · 从池子回购 <span class="val">${p.fuelBurn.toFixed(2)}</span></label>
+    <label class="block">回购销毁 · 薄池拉针 <span class="val">${p.fuelBurn.toFixed(2)}</span></label>
     <input type="range" min="0" max="0.6" step="0.01" value="${p.fuelBurn}" data-p="fuelBurn" />
     <label class="block">募资 BNB <span class="val">${p.raiseBnb}</span></label>
     <input type="range" min="20" max="300" step="5" value="${p.raiseBnb}" data-p="raiseBnb" />
