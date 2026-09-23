@@ -129,13 +129,23 @@ function simulateTape(times, params, depth, demandBoost) {
         amm.token += minedNow * dump;
         amm.quote = k / amm.token;
       }
-      burned += minedNow * burn;
       const attention = 0.28 + 0.72 * params.demand * Math.exp(-h / (24 * persist));
       const buy = quote0 * 0.012 * params.demand * demandBoost * attention * (day - lastDay);
       if (buy > 0) {
         const k = amm.token * amm.quote;
         amm.quote += buy;
         amm.token = k / amm.quote;
+      }
+      const wantBurn = minedNow * burn;
+      const daySpan = day - lastDay;
+      if (wantBurn > 0 && burn > 0 && amm.token > 1) {
+        const burnt = Math.min(wantBurn, amm.token * burn * 0.005 * daySpan);
+        if (burnt > 0) {
+          const k = amm.token * amm.quote;
+          amm.token -= burnt;
+          amm.quote = k / amm.token;
+          burned += burnt;
+        }
       }
       lastDay = day;
     }
@@ -306,7 +316,7 @@ function renderControls() {
     <input type="range" min="0" max="1" step="0.01" value="${p.demand}" data-p="demand" />
     <label class="block">矿工兑现 <span class="val">${p.minerDump.toFixed(2)}</span></label>
     <input type="range" min="0" max="0.95" step="0.01" value="${p.minerDump}" data-p="minerDump" />
-    <label class="block">燃料销毁 <span class="val">${p.fuelBurn.toFixed(2)}</span></label>
+    <label class="block">燃料销毁 · 从池子回购 <span class="val">${p.fuelBurn.toFixed(2)}</span></label>
     <input type="range" min="0" max="0.6" step="0.01" value="${p.fuelBurn}" data-p="fuelBurn" />
     <label class="block">募资 BNB <span class="val">${p.raiseBnb}</span></label>
     <input type="range" min="20" max="300" step="5" value="${p.raiseBnb}" data-p="raiseBnb" />
