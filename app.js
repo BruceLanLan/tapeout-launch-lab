@@ -143,7 +143,7 @@ function simulateTape(times, params, depth, demandBoost) {
         amm.token = k / amm.quote;
       }
       if (burn > 0 && amm.token > 1 && daySpan > 0) {
-        const frac = Math.min(0.02, (burn * 0.012 * daySpan) / Math.sqrt(depth));
+        const frac = Math.min(0.015, (burn * 0.045 * daySpan) / Math.sqrt(depth));
         const burnt = Math.min(minedNow * burn, amm.token * frac);
         if (burnt > 0) {
           const k = amm.token * amm.quote;
