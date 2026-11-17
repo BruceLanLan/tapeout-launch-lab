@@ -4,7 +4,7 @@ TapeOut Research · [@BruceBlue](https://x.com/BruceBlue) · 2026-09
 对照对象：Pump.fun、Four.meme、Flap、Pons、LONG、Virtuals、TapeHub  
 本文是机制对照，不是收益预测，也不是官方文档。
 
-**模拟器：** [brucelanlan.github.io](https://brucelanlan.github.io/)  
+**模拟器：** [brucelanlan.github.io/tapeout-launch-lab](https://brucelanlan.github.io/tapeout-launch-lab/)  
 **仓库：** [BruceLanLan/tapeout-launch-lab](https://github.com/BruceLanLan/tapeout-launch-lab)
 
 ---

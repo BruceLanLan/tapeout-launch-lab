@@ -4,7 +4,7 @@
 
 作者：[x.com/BruceBlue](https://x.com/BruceBlue)
 
-**公开页面：** [brucelanlan.github.io](https://brucelanlan.github.io/)  
+**公开页面：** [brucelanlan.github.io/tapeout-launch-lab](https://brucelanlan.github.io/tapeout-launch-lab/)  
 **机制研究正文：** [RESEARCH.md](./RESEARCH.md)
 
 这是机制对照，不是收益预测。TapeHub 保护的是供给下限（无预留、5% LP / 95% 减半挖矿、1908 天），不是价格上限。
